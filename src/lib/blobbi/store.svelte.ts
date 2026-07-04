@@ -288,4 +288,3 @@ export function toast(msg: string): void {
   if (toastHandle) clearTimeout(toastHandle);
   toastHandle = setTimeout(() => { ui.toast = null; }, 2600);
 }
-

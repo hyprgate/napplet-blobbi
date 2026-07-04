@@ -217,8 +217,8 @@ export async function importFromNostr(): Promise<NostrImport> {
       relayQuery([blobbiFilter]),
       relayQuery([profileFilter]),
     ]);
-    const blobbiEvents: NostrEvent[] = Array.isArray(blobbiRes) ? blobbiRes : [];
-    const profileEvents: NostrEvent[] = Array.isArray(profileRes) ? profileRes : [];
+    const blobbiEvents: NostrEvent[] = Array.isArray(blobbiRes) ? blobbiRes.map((result) => result.event as NostrEvent) : [];
+    const profileEvents: NostrEvent[] = Array.isArray(profileRes) ? profileRes.map((result) => result.event as NostrEvent) : [];
     console.info(`[blobbi] relay returned ${blobbiEvents.length} blobbi (kind ${KIND_BLOBBI_STATE}) + ${profileEvents.length} profile (kind ${KIND_BLOBBONAUT_PROFILE}) events`);
 
     const blobbis = newestPerD(blobbiEvents)
