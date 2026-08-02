@@ -27,7 +27,7 @@ export interface ActionResult {
 
 const EGG_ALLOWED: CareAction[] = ['medicine', 'clean'];
 
-/** Apply decay up to `now` and reset the decay checkpoint. */
+/** Apply decay up to `now` and reset the decay baseline. */
 function settleDecay(b: Blobbi, nowSec: number): Blobbi {
   const stats = applyBlobbiDecay({
     stage: b.lifeStage,
