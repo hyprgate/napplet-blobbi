@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import UnoCSS from '@unocss/vite';
@@ -9,7 +10,9 @@ export default defineConfig({
     svelte(),
     nip5aManifest({
       nappletType: 'blobbi',
-      requires: ['identity', 'relay', 'inc', 'storage', 'theme'],
+      requires: ['identity', 'relay', 'inc', 'storage'],
+      optional: ['theme'],
+      icon: { data: readFileSync(new URL('./icon.png', import.meta.url)), mimeType: 'image/png' },
       artifactMode: 'single-file',
     }),
   ],
