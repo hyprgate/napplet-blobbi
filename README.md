@@ -4,46 +4,29 @@
 > Do not push commits to this standalone napplet repository; direct changes are overwritten by Hyprgate's mirror workflow.
 <!-- HYPRGATE NAPPLET MIRROR NOTICE:END -->
 
-# napplet-blobbi
+# Blobbi
 
-[![CI](https://github.com/hyprgate/napplet-blobbi/actions/workflows/ci.yml/badge.svg)](https://github.com/hyprgate/napplet-blobbi/actions/workflows/ci.yml)
+Adopt, hatch and raise a pixel pet. Care for it with music, food, toys and medicine, finish daily
+missions, and evolve it into its adult form. An existing Blobbi is imported from Nostr
+(kind 31124) when one exists.
 
-Forkable source repository for the Hyprgate built-in napplet currently packaged as `@hyprgate/napp-blobbi`.
+Package: `@hyprgate/napp-blobbi`. Source lives in the Hyprgate monorepo at `napplets/blobbi`. The
+standalone `hyprgate/napplet-blobbi` repository is a generated, read-only mirror, so send changes
+to `hyprgate/web`.
 
-This repository was split from `hyprgate/gui` and is mounted back into the parent checkout as `napplets/blobbi`.
-It still expects the parent workspace when built through Hyprgate because shared `@hyprgate/*` packages remain workspace dependencies.
+## Working on it
 
-## Parent checkout
+Run these from the Hyprgate checkout so `workspace:*` packages resolve:
 
 ```bash
-git clone --recurse-submodules git@github.com:hyprgate/gui.git
-cd gui
 pnpm install --frozen-lockfile
-pnpm --filter @hyprgate/napp-blobbi build
+pnpm --filter ./napplets/blobbi paja        # Kehto Paja plus the Vite dev server
+pnpm --filter ./napplets/blobbi exec vitest run
+pnpm --filter ./napplets/blobbi type-check
+pnpm --filter ./napplets/blobbi conformance # builds, then checks dist/
 ```
 
-## Paja runtime
+## Coins
 
-```bash
-pnpm --filter @hyprgate/napp-blobbi paja
-```
-
-This starts Kehto Paja and the napplet's Vite dev server together, using
-the port configured in `vite.config.ts`.
-
-## Testing
-
-Run these checks from a Hyprgate parent checkout so workspace dependencies resolve:
-
-```bash
-git clone --recurse-submodules git@github.com:hyprgate/gui.git
-cd gui
-pnpm install --frozen-lockfile
-pnpm --filter @hyprgate/napp-blobbi conformance
-pnpm --filter @hyprgate/napp-blobbi test
-pnpm --filter @hyprgate/napp-blobbi build
-```
-
-The `conformance` script builds the napplet and runs `@napplet/conformance-cli` against `dist/`. CI runs the same conformance, unit test, and build checks for every push and pull request.
-
-CI runs from the standalone napplet repository but checks out `hyprgate/gui` to resolve private `workspace:*` packages. Configure `HYPRGATE_GUI_CHECKOUT_TOKEN` with read access to `hyprgate/gui` before enabling GitHub Actions.
+Coins are earned by caring for a Blobbi. So nobody gets stuck without one, rerolling an egg can't
+take you below the adoption cost, and the first adoption always goes through.

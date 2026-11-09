@@ -22,7 +22,7 @@
 
 <main class="root">
   {#if !ready}
-    <div class="center muted">{ui.importing ? 'looking for your Blobbi…' : 'loading…'}</div>
+    <div class="center muted">{ui.importing ? 'Looking for your Blobbi…' : 'Loading…'}</div>
   {:else if showGame}
     <Game />
   {:else}
@@ -30,7 +30,7 @@
   {/if}
 
   {#if ui.toast}
-    <div class="toast">{ui.toast}</div>
+    <div class="toast" role="status">{ui.toast}</div>
   {/if}
 </main>
 
@@ -44,6 +44,11 @@
     background: var(--hg-bg-base, #151923);
     color: var(--hg-text-primary, #eef2f7);
     font-family: var(--hg-font-body, ui-monospace, monospace);
+  }
+  .root :global(button:focus-visible),
+  .root :global(input:focus-visible) {
+    outline: 2px solid var(--hg-accent-primary, #7fb37a);
+    outline-offset: 2px;
   }
   .center { flex: 1; display: grid; place-items: center; }
   .muted { color: var(--hg-text-muted, #8a93a3); }

@@ -46,5 +46,6 @@
   width={size}
   height={size}
   style="width:{size}px;height:{size}px;image-rendering:pixelated;"
+  role="img"
   aria-label="Pixel-art Blobbi"
 ></canvas>

@@ -3,15 +3,15 @@
 // loop. Operates on the shared `game`/`ui` runes imported from the store.
 
 import { applyDirectAction, applyItemAction, setSleeping } from './actions.js';
+import { REROLL_COST, adoptionPrice, canAdopt, canReroll } from './economy.js';
+import { adultFormLabel } from './forms.js';
 import type { BlobbiEmotion } from './emotions.js';
 import { canEvolve, canHatch, createEgg, evolveToAdult, hatchToBaby, refreshProgressionMissions } from './lifecycle.js';
 import { missionComplete, selectReplacementMission } from './missions.js';
 import { shopItem } from './shop.js';
 import {
-  ADOPTION_COST,
   CARE_COIN_REWARD,
   OVERFEED_THRESHOLD,
-  REROLL_COST,
   addPoop,
   bumpMissions,
   currentBlobbi,
@@ -58,7 +58,7 @@ export function cancelAdoption(): void {
 }
 
 export function rerollPreview(): void {
-  if (game.coins < REROLL_COST) { toast('Not enough coins to reroll'); return; }
+  if (!canReroll(game.coins)) { toast('You need those coins to adopt'); return; }
   const name = game.preview?.name ?? 'Blobbi';
   game.coins -= REROLL_COST;
   game.preview = createEgg({ name });
@@ -72,8 +72,8 @@ export function renamePreview(name: string): void {
 
 export function adoptPreview(): void {
   if (!game.preview) return;
-  if (game.coins < ADOPTION_COST) { toast('Not enough coins to adopt'); return; }
-  game.coins -= ADOPTION_COST;
+  if (!canAdopt(game.coins, game.blobbis.length)) { toast('Not enough coins to adopt'); return; }
+  game.coins -= adoptionPrice(game.coins, game.blobbis.length);
   game.blobbis.push(game.preview);
   game.currentId = game.preview.id;
   game.preview = null;
@@ -184,7 +184,7 @@ export function doEvolve(): void {
   setCurrent(adult);
   game.daily = null;
   ensureDaily();
-  toast(`Your Blobbi evolved into ${adult.adultForm}! ✨`);
+  toast(`Your Blobbi evolved into ${adultFormLabel(adult.adultForm ?? 'adult')}! ✨`);
   persist();
 }
 

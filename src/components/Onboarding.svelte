@@ -10,23 +10,57 @@
     startProfile,
     ui,
   } from '../lib/blobbi/store.svelte.js';
+  import { adoptionPrice, canAdopt, canReroll } from '../lib/blobbi/economy.js';
   import { adultFormLabel } from '../lib/blobbi/forms.js';
-  import { deriveAdultForm } from '../lib/blobbi/seed.js';
+  import { deriveAdultForm, deriveTraits } from '../lib/blobbi/seed.js';
   import PixelBlobbi from '../lib/pixel/PixelBlobbi.svelte';
+
+  // A fixed example, so the landing page always shows the same family.
+  const SAMPLE_SEED = '7fb37a1c9d2e4b60a3f85c17de42096b7fb37a1c9d2e4b60a3f85c17de42096b';
+  const sampleTraits = deriveTraits(SAMPLE_SEED);
+  const sampleForm = deriveAdultForm(SAMPLE_SEED);
+  const STAGES = [
+    { stage: 'egg', title: 'Hatch', copy: 'Keep your egg company until it cracks.' },
+    { stage: 'baby', title: 'Raise', copy: 'Feed it, play with it and put it to bed.' },
+    { stage: 'adult', title: 'Evolve', copy: 'Finish its missions to see what it becomes.' },
+  ] as const;
 
   let name = $state('Blobbi');
   $effect(() => { if (game.preview) name = game.preview.name; });
+
+  const rerollable = $derived(canReroll(game.coins));
+  const adoptable = $derived(canAdopt(game.coins, game.blobbis.length));
+  const price = $derived(adoptionPrice(game.coins, game.blobbis.length));
 </script>
 
 <div class="wrap">
   {#if game.onboarding === 'intro'}
     <h1 class="title">Blobbi</h1>
     <p class="lede">Adopt, hatch and raise your very own pixel companion.</p>
-    <div class="hint">You start with <strong>{game.coins}</strong> coins.</div>
-    {#if ui.importing}
-      <div class="hint">checking Nostr for an existing Blobbi…</div>
-    {/if}
+
+    <ol class="stages">
+      {#each STAGES as item (item.stage)}
+        <li class="stage-card">
+          <PixelBlobbi
+            stage={item.stage}
+            emotion="happy"
+            sleeping={false}
+            traits={sampleTraits}
+            adultForm={sampleForm}
+            size={96}
+            animate={false}
+          />
+          <strong>{item.title}</strong>
+          <span>{item.copy}</span>
+        </li>
+      {/each}
+    </ol>
+
     <button class="primary" onclick={startProfile}>Begin</button>
+    <div class="hint">You start with <strong>{game.coins}</strong> coins, and adopting an egg costs {ADOPTION_COST}.</div>
+    {#if ui.importing}
+      <div class="hint">Checking Nostr for a Blobbi you already have…</div>
+    {/if}
   {:else if game.preview}
     <h2 class="title">Meet your egg</h2>
     <div class="egg-stage">
@@ -55,27 +89,31 @@
     </label>
 
     <div class="actions">
-      <button class="ghost" onclick={rerollPreview} disabled={game.coins < REROLL_COST}>
-        Reroll (−{REROLL_COST})
+      <button class="ghost" onclick={rerollPreview} disabled={!rerollable}>
+        Try another egg (−{REROLL_COST})
       </button>
-      <button class="primary" onclick={adoptPreview} disabled={game.coins < ADOPTION_COST}>
-        Adopt (−{ADOPTION_COST})
+      <button class="primary" onclick={adoptPreview} disabled={!adoptable}>
+        Adopt (−{price})
       </button>
     </div>
     {#if game.blobbis.length > 0}
       <button class="link" onclick={cancelAdoption}>Cancel</button>
     {/if}
-    <div class="hint">Coins: {game.coins}</div>
+    <div class="hint">
+      {game.coins} coins{#if !rerollable && adoptable}. The rest is saved for adopting.{/if}
+    </div>
   {/if}
 </div>
 
 <style>
   .wrap {
     flex: 1;
+    min-height: 0;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: safe center;
     gap: 12px;
     padding: 24px;
     text-align: center;
@@ -83,6 +121,34 @@
   .title { font-family: var(--hg-font-title, inherit); margin: 0; font-size: 28px; }
   .lede { color: var(--hg-text-secondary, #b6bfce); margin: 0; max-width: 340px; }
   .hint { color: var(--hg-text-muted, #8a93a3); font-size: 13px; }
+  .stages {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 170px));
+    gap: 12px;
+    margin: 8px 0;
+    padding: 0;
+    list-style: none;
+  }
+  .stage-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 12px 10px;
+    font-size: 12px;
+    line-height: 1.35;
+    color: var(--hg-text-muted, #8a93a3);
+    background: var(--hg-bg-surface, #1c222e);
+    border: 1px solid var(--hg-border, #333b49);
+    border-radius: 10px;
+  }
+  .stage-card strong {
+    font-size: 14px;
+    color: var(--hg-text-primary, #eef2f7);
+  }
+  @media (max-width: 460px) {
+    .stages { grid-template-columns: minmax(0, 260px); }
+  }
   .egg-stage {
     display: grid;
     place-items: center;
@@ -110,7 +176,7 @@
     text-align: center;
     width: 220px;
   }
-  .actions { display: flex; gap: 10px; }
+  .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
   button {
     font: inherit;
     cursor: pointer;

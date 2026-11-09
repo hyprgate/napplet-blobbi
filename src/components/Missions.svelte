@@ -9,20 +9,20 @@
   {:else}
     <div class="head">
       <span>Daily Missions</span>
-      <span class="rerolls">{game.daily.rerolls} rerolls left</span>
+      <span class="rerolls">{game.daily.rerolls} {game.daily.rerolls === 1 ? 'swap' : 'swaps'} left</span>
     </div>
     {#each game.daily.missions as m (m.id)}
       {@const done = missionComplete(m)}
       <div class="m" class:done>
         <div class="m-top">
-          <span class="m-label">{done ? '✅' : '○'} {m.label}</span>
+          <span class="m-label"><span aria-hidden="true">{done ? '✅' : '○'}</span> {m.label}</span>
           <span class="m-xp">+{m.xp} XP</span>
         </div>
         <div class="m-bar"><div class="m-fill" style="width:{Math.min(100, (m.current / m.target) * 100)}%"></div></div>
         <div class="m-foot">
           <span class="m-prog">{Math.min(m.current, m.target)}/{m.target}</span>
           {#if !done && game.daily.rerolls > 0}
-            <button class="reroll" onclick={() => rerollMission(m.id)}>↻ reroll</button>
+            <button class="reroll" aria-label={`Swap ${m.label} for another mission`} onclick={() => rerollMission(m.id)}>↻ Swap</button>
           {/if}
         </div>
       </div>

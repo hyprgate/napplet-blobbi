@@ -18,7 +18,7 @@
   import PixelBlobbiMini from '../lib/pixel/PixelBlobbi.svelte';
   import { EMOTION_LABEL } from '../lib/blobbi/emotions.js';
   import { adultFormLabel } from '../lib/blobbi/forms.js';
-  import { xpToLevel, xpProgress } from '../lib/blobbi/progression.js';
+  import { xpToLevel, xpProgress, xpToNextLevel } from '../lib/blobbi/progression.js';
   import { shopItem } from '../lib/blobbi/shop.js';
   import PixelBlobbi from '../lib/pixel/PixelBlobbi.svelte';
   import StatHud from './StatHud.svelte';
@@ -48,23 +48,32 @@
 </script>
 
 <div class="game">
-  <!-- Header -->
   <header class="bar">
     <div class="who">
-      <strong>{b.name}</strong>
+      <h1 class="who-name">{b.name}</h1>
       <span class="sub">{stageLabel}</span>
     </div>
     <div class="meta">
-      <span title="Level">Lv {level}</span>
-      <span class="coins" title="Coins">🪙 {game.coins}</span>
-      <button class="adopt-btn" title="Adopt another Blobbi" onclick={startNewAdoption}>＋</button>
+      <span title={`${xpToNextLevel(game.playerXp)} XP to the next level`}>Level {level}</span>
+      <span class="coins" aria-label={`${game.coins} coins`}>🪙 {game.coins}</span>
+      <button class="adopt-btn" onclick={startNewAdoption}>Adopt another</button>
     </div>
   </header>
+  <div
+    class="xp"
+    role="progressbar"
+    aria-label="Progress to the next level"
+    aria-valuemin="0"
+    aria-valuemax="100"
+    aria-valuenow={Math.round(xpProgress(game.playerXp) * 100)}
+  >
+    <div class="xp-fill" style="width:{xpProgress(game.playerXp) * 100}%"></div>
+  </div>
 
   {#if game.blobbis.length > 1}
-    <div class="switcher">
+    <div class="switcher" role="group" aria-label="Your Blobbis">
       {#each game.blobbis as bb (bb.id)}
-        <button class="swatch" class:active={bb.id === b.id} onclick={() => selectBlobbi(bb.id)} title={bb.name}>
+        <button class="swatch" class:active={bb.id === b.id} aria-pressed={bb.id === b.id} onclick={() => selectBlobbi(bb.id)} title={bb.name}>
           <PixelBlobbiMini stage={bb.lifeStage} emotion="neutral" sleeping={bb.state === 'sleeping'} traits={bb.traits} adultForm={bb.adultForm} size={26} animate={false} />
           <span class="sw-name">{bb.name}</span>
         </button>
@@ -72,114 +81,110 @@
     </div>
   {/if}
 
-  <!-- Room stage -->
-  <div class="stage" class:night={sleeping}>
-    <div class="floor"></div>
-    <div class="blobbi-anchor">
-      <PixelBlobbi
-        stage={b.lifeStage}
-        emotion={currentEmotion()}
-        {sleeping}
-        traits={b.traits}
-        adultForm={b.adultForm}
-        size={180}
-      />
-    </div>
-    <div class="mood">{sleeping ? 'sleeping' : EMOTION_LABEL[currentEmotion()]}</div>
-
-    {#each game.poops as poop (poop.id)}
-      <button
-        class="poop"
-        style="left:{poop.left}%;bottom:{poop.bottom}px;"
-        title="Clean (+5 XP)"
-        onclick={() => cleanPoop(poop.id)}
-      >💩</button>
-    {/each}
-  </div>
-
-  <!-- XP bar -->
-  <div class="xp">
-    <div class="xp-fill" style="width:{xpProgress(game.playerXp) * 100}%"></div>
-  </div>
-
-  <!-- Stats -->
-  <div class="stats"><StatHud blobbi={b} /></div>
-
-  <!-- Progression (incubating / evolving) -->
-  {#if b.progressionState !== 'none'}
-    <div class="prog">
-      <div class="prog-head">
-        <span>{b.progressionState === 'incubating' ? 'Incubation' : 'Evolution'}</span>
-        {#if b.progressionState === 'incubating' && hatchReady()}
-          <button class="mini primary" onclick={doHatch}>Hatch! 🐣</button>
-        {:else if b.progressionState === 'evolving' && evolveReady()}
-          <button class="mini primary" onclick={doEvolve}>Evolve! ✨</button>
-        {/if}
-      </div>
-      {#each b.progressionMissions as m (m.id)}
-        <div class="prog-row">
-          <span class="prog-label">{m.label}</span>
-          <span class="prog-val">{Math.min(m.current, m.target)}/{m.target}</span>
+  <div class="layout">
+    <section class="pet" aria-label={b.name}>
+      <div class="stage" class:night={sleeping}>
+        <div class="floor"></div>
+        <div class="blobbi-anchor">
+          <PixelBlobbi
+            stage={b.lifeStage}
+            emotion={currentEmotion()}
+            {sleeping}
+            traits={b.traits}
+            adultForm={b.adultForm}
+            size={180}
+          />
         </div>
-      {/each}
-    </div>
-  {/if}
+        <div class="mood">{sleeping ? 'Sleeping' : `Feeling ${EMOTION_LABEL[currentEmotion()]}`}</div>
 
-  <!-- Tabs -->
-  <nav class="tabs">
-    <button class:active={tab === 'care'} onclick={() => (tab = 'care')}>Care</button>
-    <button class:active={tab === 'shop'} onclick={() => (tab = 'shop')}>Shop</button>
-    <button class:active={tab === 'missions'} onclick={() => (tab = 'missions')}>Missions</button>
-  </nav>
-
-  <div class="panel">
-    {#if tab === 'care'}
-      <div class="quick">
-        {#if !isEgg}
-          <button class="act" onclick={() => directAction('play_music')}>🎵 Music</button>
-          <button class="act" onclick={() => directAction('sing')}>🎤 Sing</button>
-          <button class="act" onclick={toggleSleep}>{sleeping ? '☀️ Wake' : '🌙 Sleep'}</button>
-          <button class="act" onclick={takePhoto}>📸 Photo</button>
-        {:else}
-          <button class="act" onclick={() => directAction('play_music')}>🎵 Music</button>
-          <button class="act" onclick={() => directAction('sing')}>🎤 Sing</button>
-        {/if}
+        {#each game.poops as poop (poop.id)}
+          <button
+            class="poop"
+            style="left:{poop.left}%;bottom:{poop.bottom}px;"
+            title="Clean (+5 XP)"
+            aria-label="Clean up (+5 XP)"
+            onclick={() => cleanPoop(poop.id)}
+          >💩</button>
+        {/each}
       </div>
 
-      <div class="inv-title">Inventory</div>
-      {#if ownedItems.length === 0}
-        <p class="empty">No items yet. Visit the <button class="link" onclick={() => (tab = 'shop')}>Shop</button> to buy food, toys & medicine.</p>
-      {:else}
-        <div class="inv">
-          {#each ownedItems as { item, qty } (item.id)}
-            <button class="item" onclick={() => useItem(item.id)} title={item.name}>
-              <span class="emoji">{item.icon}</span>
-              <span class="qty">×{qty}</span>
-              <span class="iname">{item.name}</span>
-            </button>
+      <div class="stats"><StatHud blobbi={b} /></div>
+
+      {#if b.progressionState !== 'none'}
+        <div class="prog">
+          <div class="prog-head">
+            <span>{b.progressionState === 'incubating' ? 'Getting ready to hatch' : 'Getting ready to evolve'}</span>
+            {#if b.progressionState === 'incubating' && hatchReady()}
+              <button class="mini primary" onclick={doHatch}>Hatch! 🐣</button>
+            {:else if b.progressionState === 'evolving' && evolveReady()}
+              <button class="mini primary" onclick={doEvolve}>Evolve! ✨</button>
+            {/if}
+          </div>
+          {#each b.progressionMissions as m (m.id)}
+            <div class="prog-row">
+              <span class="prog-label">{m.label}</span>
+              <span class="prog-val">{Math.min(m.current, m.target)}/{m.target}</span>
+              <div class="prog-bar" aria-hidden="true"><div class="prog-fill" style="width:{Math.min(100, (m.current / m.target) * 100)}%"></div></div>
+            </div>
           {/each}
         </div>
       {/if}
-      {#if isEgg}
-        <p class="note">Eggs can only be cleaned or given medicine — and they love music.</p>
-      {/if}
-    {:else if tab === 'shop'}
-      <Shop />
-    {:else}
-      <Missions />
-    {/if}
+    </section>
+
+    <section class="play">
+      <div class="tabs" role="tablist" aria-label="What to do">
+        <button role="tab" aria-selected={tab === 'care'} class:active={tab === 'care'} onclick={() => (tab = 'care')}>Care</button>
+        <button role="tab" aria-selected={tab === 'shop'} class:active={tab === 'shop'} onclick={() => (tab = 'shop')}>Shop</button>
+        <button role="tab" aria-selected={tab === 'missions'} class:active={tab === 'missions'} onclick={() => (tab = 'missions')}>Missions</button>
+      </div>
+
+      <div class="panel" role="tabpanel">
+        {#if tab === 'care'}
+          <div class="quick">
+            <button class="act" onclick={() => directAction('play_music')}><span aria-hidden="true">🎵</span> Music</button>
+            <button class="act" onclick={() => directAction('sing')}><span aria-hidden="true">🎤</span> Sing</button>
+            {#if !isEgg}
+              <button class="act" onclick={toggleSleep}><span aria-hidden="true">{sleeping ? '☀️' : '🌙'}</span> {sleeping ? 'Wake' : 'Sleep'}</button>
+              <button class="act" onclick={takePhoto}><span aria-hidden="true">📸</span> Photo</button>
+            {/if}
+          </div>
+
+          <h2 class="inv-title">Inventory</h2>
+          {#if ownedItems.length === 0}
+            <p class="empty">No items yet. Visit the <button class="link" onclick={() => (tab = 'shop')}>Shop</button> to buy food, toys and medicine.</p>
+          {:else}
+            <div class="inv">
+              {#each ownedItems as { item, qty } (item.id)}
+                <button class="item" onclick={() => useItem(item.id)} title={item.name}>
+                  <span class="emoji" aria-hidden="true">{item.icon}</span>
+                  <span class="qty">×{qty}</span>
+                  <span class="iname">{item.name}</span>
+                </button>
+              {/each}
+            </div>
+          {/if}
+          {#if isEgg}
+            <p class="note">Eggs can only be cleaned or given medicine, and they love music.</p>
+          {/if}
+        {:else if tab === 'shop'}
+          <Shop />
+        {:else}
+          <Missions />
+        {/if}
+      </div>
+    </section>
   </div>
 </div>
 
 <style>
   .game { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-  .bar { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--hg-border, #333b49); }
-  .who { display: flex; align-items: baseline; gap: 8px; }
-  .who strong { font-size: 15px; }
+  .bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 12px; padding: 10px 14px; }
+  .who { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+  .who-name { margin: 0; font: inherit; font-size: 15px; font-weight: 700; }
   .sub { font-size: 11px; color: var(--hg-text-muted, #8a93a3); }
   .meta { display: flex; gap: 12px; font-size: 12px; color: var(--hg-text-secondary, #b6bfce); align-items: center; }
   .coins { color: var(--hg-accent-warning, #d9a441); }
-  .adopt-btn { font: inherit; cursor: pointer; width: 22px; height: 22px; line-height: 1; border-radius: 6px; border: 1px solid var(--hg-border, #333b49); background: var(--hg-bg-elevated, #232a37); color: var(--hg-text-primary, #eef2f7); }
+  .adopt-btn { font: inherit; font-size: 12px; cursor: pointer; padding: 3px 8px; line-height: 1.2; border-radius: 6px; border: 1px solid var(--hg-border, #333b49); background: var(--hg-bg-elevated, #232a37); color: var(--hg-text-primary, #eef2f7); }
   .adopt-btn:hover { opacity: 0.8; }
 
   .switcher { display: flex; gap: 6px; overflow-x: auto; padding: 8px 14px; border-bottom: 1px solid var(--hg-border, #333b49); }
@@ -187,6 +192,46 @@
   .swatch.active { border-color: var(--hg-accent-primary, #7fb37a); color: var(--hg-text-primary, #eef2f7); }
   .swatch :global(canvas) { border-radius: 50%; }
   .sw-name { font-size: 11px; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Side by side when there's room, so the panel isn't left with whatever is under the pet. */
+  .layout {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(300px, 5fr) minmax(320px, 6fr);
+  }
+  .pet {
+    min-height: 0;
+    overflow-y: auto;
+    border-right: 1px solid var(--hg-border, #333b49);
+  }
+  .play {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  @media (max-width: 720px) {
+    .layout {
+      display: block;
+      overflow-y: auto;
+    }
+    .pet {
+      overflow: visible;
+      border-right: none;
+    }
+    .play {
+      display: block;
+    }
+    .tabs {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: var(--hg-bg-base, #151923);
+    }
+    .panel {
+      overflow: visible !important;
+    }
+  }
 
   .stage {
     position: relative;
@@ -202,7 +247,7 @@
   .stage.night { filter: brightness(0.7) saturate(0.8); }
   .floor { position: absolute; bottom: 0; left: 0; right: 0; height: 28%; background: color-mix(in srgb, var(--hg-bg-elevated, #232a37) 70%, #000); }
   .blobbi-anchor { position: relative; z-index: 2; margin-bottom: 14px; }
-  .mood { position: absolute; top: 8px; right: 12px; font-size: 11px; color: var(--hg-text-muted, #8a93a3); text-transform: lowercase; }
+  .mood { position: absolute; top: 8px; right: 12px; font-size: 11px; color: var(--hg-text-secondary, #b6bfce); }
   .poop { position: absolute; z-index: 3; background: none; border: none; cursor: pointer; font-size: 18px; padding: 2px; line-height: 1; }
   .poop:hover { transform: scale(1.15); }
 
@@ -213,23 +258,26 @@
 
   .prog { margin: 0 14px 10px; padding: 10px 12px; border: 1px solid var(--hg-border, #333b49); border-radius: 10px; background: var(--hg-bg-surface, #1c222e); }
   .prog-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 600; margin-bottom: 6px; }
-  .prog-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--hg-text-secondary, #b6bfce); }
+  .prog-row { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; font-size: 12px; color: var(--hg-text-secondary, #b6bfce); }
+  .prog-row + .prog-row { margin-top: 8px; }
   .prog-val { font-variant-numeric: tabular-nums; color: var(--hg-text-muted, #8a93a3); }
+  .prog-bar { grid-column: 1 / -1; height: 5px; overflow: hidden; border-radius: 3px; background: var(--hg-bg-elevated, #232a37); }
+  .prog-fill { height: 100%; background: var(--hg-accent-primary, #7fb37a); transition: width 0.3s; }
 
-  .tabs { display: flex; gap: 2px; padding: 0 14px; border-bottom: 1px solid var(--hg-border, #333b49); }
+  .tabs { flex: none; display: flex; gap: 2px; padding: 0 14px; border-bottom: 1px solid var(--hg-border, #333b49); }
   .tabs button { flex: 1; background: none; border: none; border-bottom: 2px solid transparent; color: var(--hg-text-muted, #8a93a3); padding: 8px; font: inherit; cursor: pointer; font-size: 13px; }
   .tabs button.active { color: var(--hg-text-primary, #eef2f7); border-bottom-color: var(--hg-accent-primary, #7fb37a); }
 
   .panel { flex: 1; overflow-y: auto; padding: 12px 14px; min-height: 0; }
   .quick { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
   .act, .item, .mini { font: inherit; cursor: pointer; border-radius: 8px; border: 1px solid var(--hg-border, #333b49); background: var(--hg-bg-elevated, #232a37); color: var(--hg-text-primary, #eef2f7); transition: opacity 0.15s, transform 0.1s; }
-  .act { padding: 8px 12px; font-size: 13px; }
+  .act { padding: 10px 16px; font-size: 13px; }
   .act:hover, .item:hover { opacity: 0.85; }
   .act:active, .item:active { transform: translateY(1px); }
   .mini { padding: 3px 10px; font-size: 11px; }
   .mini.primary { background: var(--hg-accent-primary, #7fb37a); color: var(--hg-bg-base, #151923); border-color: transparent; font-weight: 600; }
 
-  .inv-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--hg-text-muted, #8a93a3); margin-bottom: 8px; }
+  .inv-title { margin: 0 0 8px; font: inherit; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--hg-text-muted, #8a93a3); }
   .inv { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; }
   .item { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; }
   .emoji { font-size: 22px; }

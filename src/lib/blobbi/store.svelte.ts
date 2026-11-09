@@ -44,8 +44,7 @@ const STORAGE_KEY = 'hyprgate-blobbi-save-v2';
 const SAVE_VERSION = 2;
 
 export const INITIAL_COINS = 200;
-export const ADOPTION_COST = 100;
-export const REROLL_COST = 10;
+export { ADOPTION_COST, REROLL_COST } from './economy.js';
 export const CARE_COIN_REWARD = 2;
 const TICK_MS = 5000;
 const OVERRIDE_MS = 1500;
